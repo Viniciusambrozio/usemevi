@@ -22,7 +22,7 @@ export function SalesChart({ data }: SalesChartProps) {
   }
 
   // Prepara dados para os últimos 7 dias
-  const last7Days = [];
+  const last7Days: Array<{ date: string; label: string; total: number }> = [];
   const today = new Date();
   
   for (let i = 6; i >= 0; i--) {
