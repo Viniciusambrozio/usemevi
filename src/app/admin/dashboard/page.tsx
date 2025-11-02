@@ -71,30 +71,30 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Visão geral do seu negócio</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Visão geral do seu negócio</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {cards.map((card, index) => {
           const Icon = card.icon;
           return (
             <div
               key={index}
-              className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl border-2 border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`${card.bgColor} p-3 rounded-lg`}>
-                  <Icon className={`h-6 w-6 ${card.textColor}`} />
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <div className={`${card.bgColor} p-2.5 sm:p-3 rounded-lg`}>
+                  <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${card.textColor}`} />
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                <p className={`text-2xl font-bold ${index === 3 ? card.textColor : "text-gray-900"}`}>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">{card.title}</p>
+                <p className={`text-xl sm:text-2xl font-bold ${index === 3 ? card.textColor : "text-gray-900"} truncate`}>
                   {card.value}
                 </p>
               </div>
@@ -104,40 +104,45 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Sales */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Vendas Recentes (Últimos 7 dias)</h2>
-            <TrendingUp className="h-5 w-5 text-gray-400" />
+        <div className="bg-white rounded-xl border-2 border-gray-200 p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 min-w-0">
+              <span className="hidden sm:inline">Vendas Recentes (Últimos 7 dias)</span>
+              <span className="sm:hidden">Vendas Recentes</span>
+            </h2>
+            <TrendingUp className="h-5 w-5 text-gray-400 flex-shrink-0" />
           </div>
-          <SalesChart data={salesData.map(s => ({ date: s.date, total: s.total }))} />
+          <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+            <SalesChart data={salesData.map(s => ({ date: s.date, total: s.total }))} />
+          </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h2>
+        <div className="bg-white rounded-xl border-2 border-gray-200 p-4 sm:p-6 shadow-sm">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h2>
           <div className="space-y-3">
             <a
-              href="/admin/products/new"
-              className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+              href="/admin/products"
+              className="flex items-center gap-3 p-3 sm:p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
             >
-              <Package className="h-5 w-5 text-primary" />
-              <span className="font-medium text-gray-700">Adicionar Novo Produto</span>
+              <Package className="h-5 w-5 text-primary flex-shrink-0" />
+              <span className="font-medium text-sm sm:text-base text-gray-700">Adicionar Novo Produto</span>
             </a>
             <a
-              href="/admin/sales/new"
-              className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+              href="/admin/sales"
+              className="flex items-center gap-3 p-3 sm:p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
             >
-              <ShoppingCart className="h-5 w-5 text-primary" />
-              <span className="font-medium text-gray-700">Registrar Nova Venda</span>
+              <ShoppingCart className="h-5 w-5 text-primary flex-shrink-0" />
+              <span className="font-medium text-sm sm:text-base text-gray-700">Registrar Nova Venda</span>
             </a>
             <a
-              href="/admin/clients/new"
-              className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+              href="/admin/clients"
+              className="flex items-center gap-3 p-3 sm:p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
             >
-              <Users className="h-5 w-5 text-primary" />
-              <span className="font-medium text-gray-700">Adicionar Cliente</span>
+              <Users className="h-5 w-5 text-primary flex-shrink-0" />
+              <span className="font-medium text-sm sm:text-base text-gray-700">Adicionar Cliente</span>
             </a>
           </div>
         </div>

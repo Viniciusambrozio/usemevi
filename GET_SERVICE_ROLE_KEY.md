@@ -21,3 +21,4 @@ A Service Role Key é necessária para criar usuários no Supabase Authenticatio
 
 Reinicie o servidor novamente e teste o cadastro de usuários!
 
+
