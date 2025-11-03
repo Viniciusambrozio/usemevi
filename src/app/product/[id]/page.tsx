@@ -26,6 +26,8 @@ export default function ProductPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [showToast, setShowToast] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
   
   // Calcula quantidade de itens do carrinho
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -108,18 +110,23 @@ export default function ProductPage() {
   const variations = Array.isArray(product.variations) ? product.variations : [];
   const sizes = variations.sizes || []; // Compatibilidade com formato antigo
   
+  // Debug - veja no console do navegador
+  console.log('Produto:', product.name);
+  console.log('Variações no banco:', product.variations);
+  console.log('Variações processadas:', variations);
+  
   // Extrair cores únicas das variações
   const uniqueColors = [...new Set(variations.map((v: any) => v.color).filter(Boolean))];
   
   // Extrair tamanhos únicos das variações
   const uniqueSizes = [...new Set(variations.map((v: any) => v.size).filter(Boolean))];
   
+  console.log('Cores únicas:', uniqueColors);
+  console.log('Tamanhos únicos:', uniqueSizes);
+  
   // Obter imagem da cor selecionada
   const selectedColorVariation = variations.find((v: any) => v.color === selectedColor);
   const colorImage = selectedColorVariation?.imageUrl;
-  
-  // Determinar qual imagem mostrar (imagem da cor ou imagem atual do carrossel)
-  const displayImages = colorImage ? [colorImage] : images;
   
   const stock = product.stock || 0;
   const isNew = product?.created_at && 
@@ -168,11 +175,54 @@ export default function ProductPage() {
   }
 
   function handleColorSelect(color: string) {
-    setSelectedColor(color);
-    // Quando seleciona uma cor, reseta o índice da imagem para mostrar a imagem da cor
-    setCurrentImageIndex(0);
+    if (selectedColor === color) {
+      // Se clicar na mesma cor, desmarca
+      setSelectedColor("");
+      setCurrentImageIndex(0);
+    } else {
+      setSelectedColor(color);
+      // Quando seleciona uma cor, reseta o índice da imagem
+      setCurrentImageIndex(0);
+      
+      // Se a cor tem imagem associada, mostra ela
+      const variation = variations.find((v: any) => v.color === color);
+      if (variation?.imageUrl) {
+        // Encontra o índice da imagem associada à cor no array de imagens
+        const imageIndex = images.indexOf(variation.imageUrl);
+        if (imageIndex !== -1) {
+          setCurrentImageIndex(imageIndex);
+        }
+      }
+    }
     if (navigator.vibrate) navigator.vibrate(30);
   }
+
+  // Swipe para trocar imagens
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && currentImageIndex < images.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1);
+    }
+    if (isRightSwipe && currentImageIndex > 0) {
+      setCurrentImageIndex(currentImageIndex - 1);
+    }
+
+    setTouchStart(0);
+    setTouchEnd(0);
+  };
 
   return (
     <div className="min-h-screen bg-white pb-32">
@@ -222,10 +272,15 @@ export default function ProductPage() {
 
       {/* Imagem do Produto */}
       <div className="relative">
-        {displayImages.length > 0 ? (
-          <div className="relative aspect-[4/5] bg-gray-50">
+        {images.length > 0 ? (
+          <div 
+            className="relative aspect-[4/5] bg-gray-50"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <Image 
-              src={displayImages[currentImageIndex] || displayImages[0]} 
+              src={images[currentImageIndex] || images[0]} 
               alt={product.name} 
               fill
               className="object-cover" 
@@ -233,28 +288,46 @@ export default function ProductPage() {
             />
 
             {/* Badge de cor selecionada */}
-            {selectedColor && colorImage && (
-              <div className="absolute top-4 left-4 bg-purple-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5">
+            {selectedColor && (
+              <div className="absolute top-4 left-4 bg-purple-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 animate-in zoom-in duration-200">
                 <div className="w-3 h-3 bg-white rounded-full"></div>
                 {selectedColor}
               </div>
             )}
 
-            {/* Indicadores de imagem */}
-            {displayImages.length > 1 && !colorImage && (
+            {/* Indicadores de imagem (sempre visível se houver múltiplas imagens) */}
+            {images.length > 1 && (
               <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
-                {displayImages.map((_: any, idx: number) => (
+                {images.map((_: any, idx: number) => (
                   <button
                     key={idx}
                     onClick={() => setCurrentImageIndex(idx)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all ${
+                    className={`transition-all ${
                       idx === currentImageIndex 
-                        ? 'bg-gray-700' 
-                        : 'bg-gray-400'
+                        ? 'w-6 h-1.5 bg-white rounded-full' 
+                        : 'w-1.5 h-1.5 bg-white/60 rounded-full hover:bg-white/80'
                     }`}
                   />
                 ))}
               </div>
+            )}
+            
+            {/* Botões de navegação (setas) */}
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={() => setCurrentImageIndex((prev) => prev === 0 ? images.length - 1 : prev - 1)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all shadow-md"
+                >
+                  <span className="text-gray-800 text-lg">‹</span>
+                </button>
+                <button
+                  onClick={() => setCurrentImageIndex((prev) => prev === images.length - 1 ? 0 : prev + 1)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all shadow-md"
+                >
+                  <span className="text-gray-800 text-lg">›</span>
+                </button>
+              </>
             )}
           </div>
         ) : (
@@ -288,6 +361,13 @@ export default function ProductPage() {
             productId={product.id}
           />
         </div>
+
+        {/* Debug Info (remover depois) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
+            Debug: {uniqueColors.length} cores, {uniqueSizes.length} tamanhos, {variations.length} variações total
+          </div>
+        )}
 
         {/* Cores Disponíveis */}
         {uniqueColors.length > 0 && (
