@@ -118,15 +118,37 @@ export default function ProductPage() {
   // Extrair cores únicas das variações
   const uniqueColors: string[] = [...new Set(variations.map((v: any) => v.color).filter(Boolean))] as string[];
   
-  // Extrair tamanhos únicos das variações
+  // Se uma cor foi selecionada, mostrar apenas tamanhos disponíveis para aquela cor
+  let availableSizes: string[] = [];
+  if (selectedColor) {
+    // Filtra variações pela cor selecionada e pega apenas os tamanhos com estoque > 0
+    availableSizes = variations
+      .filter((v: any) => v.color === selectedColor && Number(v.stock || 0) > 0)
+      .map((v: any) => v.size)
+      .filter(Boolean);
+  } else {
+    // Se nenhuma cor selecionada, mostra todos os tamanhos únicos
+    availableSizes = [...new Set(variations.map((v: any) => v.size).filter(Boolean))] as string[];
+  }
+  
+  // Extrair todos os tamanhos únicos (para mostrar antes de selecionar cor)
   const uniqueSizes: string[] = [...new Set(variations.map((v: any) => v.size).filter(Boolean))] as string[];
   
   console.log('Cores únicas:', uniqueColors);
   console.log('Tamanhos únicos:', uniqueSizes);
+  console.log('Cor selecionada:', selectedColor);
+  console.log('Tamanhos disponíveis para cor:', availableSizes);
   
   // Obter imagem da cor selecionada
   const selectedColorVariation = variations.find((v: any) => v.color === selectedColor);
   const colorImage = selectedColorVariation?.imageUrl;
+  
+  // Verificar estoque da combinação específica (cor + tamanho)
+  const selectedVariation = variations.find((v: any) => 
+    v.color === selectedColor && v.size === selectedSize
+  );
+  const variationStock = selectedVariation ? Number(selectedVariation.stock || 0) : 0;
+  const isVariationAvailable = variationStock > 0;
   
   const stock = product.stock || 0;
   const isNew = product?.created_at && 
@@ -152,10 +174,32 @@ export default function ProductPage() {
   }
 
   function handleAddToCart() {
-    if (stock <= 0) {
-      alert("Produto esgotado");
-      return;
+    // Se tem variações, validar combinação específica
+    if (variations.length > 0) {
+      if (!selectedColor && uniqueColors.length > 0) {
+        alert("Por favor, selecione uma cor");
+        return;
+      }
+      if (!selectedSize && (availableSizes.length > 0 || uniqueSizes.length > 0)) {
+        alert("Por favor, selecione um tamanho");
+        return;
+      }
+      
+      // Verificar se a combinação específica tem estoque
+      if (selectedColor && selectedSize) {
+        if (!isVariationAvailable) {
+          alert(`Desculpe, a combinação ${selectedColor} - ${selectedSize} está esgotada!`);
+          return;
+        }
+      }
+    } else {
+      // Se não tem variações, verificar estoque geral
+      if (stock <= 0) {
+        alert("Produto esgotado");
+        return;
+      }
     }
+    
     if (navigator.vibrate) navigator.vibrate(50);
     
     const variantInfo = [];
@@ -178,9 +222,11 @@ export default function ProductPage() {
     if (selectedColor === color) {
       // Se clicar na mesma cor, desmarca
       setSelectedColor("");
+      setSelectedSize(""); // Limpa tamanho também
       setCurrentImageIndex(0);
     } else {
       setSelectedColor(color);
+      setSelectedSize(""); // Limpa tamanho ao mudar de cor
       // Quando seleciona uma cor, reseta o índice da imagem
       setCurrentImageIndex(0);
       
@@ -364,8 +410,18 @@ export default function ProductPage() {
 
         {/* Debug Info (remover depois) */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
-            Debug: {uniqueColors.length} cores, {uniqueSizes.length} tamanhos, {variations.length} variações total
+          <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded space-y-1">
+            <div>Debug: {uniqueColors.length} cores, {uniqueSizes.length} tamanhos, {variations.length} variações total</div>
+            {selectedColor && (
+              <div className="text-purple-600">
+                Cor selecionada: {selectedColor} - {availableSizes.length} tamanhos disponíveis
+              </div>
+            )}
+            {selectedSize && selectedColor && (
+              <div className={isVariationAvailable ? "text-green-600" : "text-red-600"}>
+                Combinação {selectedColor} + {selectedSize}: {isVariationAvailable ? `✓ ${variationStock} em estoque` : '✕ Esgotado'}
+              </div>
+            )}
           </div>
         )}
 
@@ -378,21 +434,42 @@ export default function ProductPage() {
                 const colorVariation = variations.find((v: any) => v.color === color);
                 const hasImage = !!colorVariation?.imageUrl;
                 
+                // Verificar se esta cor tem algum tamanho com estoque
+                const colorHasStock = variations.some((v: any) => 
+                  v.color === color && Number(v.stock || 0) > 0
+                );
+                
+                // Contar quantos tamanhos disponíveis para esta cor
+                const availableCount = variations.filter((v: any) => 
+                  v.color === color && Number(v.stock || 0) > 0
+                ).length;
+                
                 return (
                   <button
                     key={color}
                     onClick={() => handleColorSelect(color)}
+                    disabled={!colorHasStock}
                     className={`
                       px-5 py-2.5 rounded-xl border-2 font-medium transition-all relative
-                      ${selectedColor === color 
-                        ? "bg-purple-500 text-white border-purple-500 shadow-lg scale-105" 
-                        : "bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:shadow-md"
+                      ${!colorHasStock
+                        ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-50"
+                        : selectedColor === color 
+                          ? "bg-purple-500 text-white border-purple-500 shadow-lg scale-105" 
+                          : "bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:shadow-md"
                       }
                     `}
                   >
                     <span>{color}</span>
                     {hasImage && (
                       <span className="ml-1.5">📸</span>
+                    )}
+                    {!colorHasStock && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded">✕</span>
+                    )}
+                    {colorHasStock && selectedColor !== color && (
+                      <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                        {availableCount}
+                      </span>
                     )}
                   </button>
                 );
@@ -407,35 +484,80 @@ export default function ProductPage() {
         )}
 
         {/* Tamanhos Disponíveis */}
-        {(uniqueSizes.length > 0 || sizes.length > 0) && (
+        {(availableSizes.length > 0 || uniqueSizes.length > 0 || sizes.length > 0) && (
           <div>
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Tamanhos Disponíveis</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-3">
+              Tamanhos Disponíveis
+              {selectedColor && (
+                <span className="text-sm font-normal text-purple-600 ml-2">
+                  (para {selectedColor})
+                </span>
+              )}
+            </h3>
+            
             <div className="flex gap-2 flex-wrap">
-              {(uniqueSizes.length > 0 ? uniqueSizes : sizes).map((size: any) => {
+              {(selectedColor ? availableSizes : (uniqueSizes.length > 0 ? uniqueSizes : sizes)).map((size: any) => {
                 const sizeLabel = typeof size === 'string' ? size : size.size;
-                const sizeStock = typeof size === 'object' && size.stock ? size.stock : null;
+                
+                // Verificar estoque específico para esta combinação
+                let sizeStock = null;
+                let isAvailable = true;
+                
+                if (selectedColor && variations.length > 0) {
+                  const variation = variations.find((v: any) => 
+                    v.color === selectedColor && v.size === sizeLabel
+                  );
+                  sizeStock = variation ? Number(variation.stock || 0) : 0;
+                  isAvailable = sizeStock > 0;
+                } else if (typeof size === 'object' && size.stock) {
+                  sizeStock = size.stock;
+                  isAvailable = sizeStock > 0;
+                }
                 
                 return (
                   <button
                     key={sizeLabel}
-                    onClick={() => setSelectedSize(sizeLabel)}
-                    className={`px-5 py-2.5 rounded-xl border-2 font-medium transition-all ${
-                      selectedSize === sizeLabel 
-                        ? "bg-primary text-white border-primary shadow-lg scale-105" 
-                        : "bg-white border-gray-300 text-gray-700 hover:border-primary hover:shadow-md"
-                    }`}
+                    onClick={() => isAvailable ? setSelectedSize(sizeLabel) : null}
+                    disabled={!isAvailable}
+                    className={`
+                      px-5 py-2.5 rounded-xl border-2 font-medium transition-all relative
+                      ${!isAvailable 
+                        ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-50" 
+                        : selectedSize === sizeLabel 
+                          ? "bg-primary text-white border-primary shadow-lg scale-105" 
+                          : "bg-white border-gray-300 text-gray-700 hover:border-primary hover:shadow-md"
+                      }
+                    `}
                   >
                     <span>{sizeLabel}</span>
-                    {sizeStock !== null && (
+                    {sizeStock !== null && isAvailable && (
                       <span className="ml-1 text-xs opacity-75">({sizeStock})</span>
+                    )}
+                    {!isAvailable && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded">✕</span>
                     )}
                   </button>
                 );
               })}
             </div>
+            
+            {availableSizes.length === 0 && selectedColor && (
+              <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-red-900">
+                  <strong>Esgotado!</strong> A cor {selectedColor} não tem nenhum tamanho disponível no momento.
+                </p>
+              </div>
+            )}
+            
             {selectedSize && (
               <p className="text-xs text-gray-600 mt-2 font-medium">
                 Tamanho selecionado: {selectedSize}
+                {selectedColor && isVariationAvailable && (
+                  <span className="text-green-600 ml-1">
+                    ✓ {variationStock} {variationStock === 1 ? 'unidade' : 'unidades'} disponível
+                  </span>
+                )}
               </p>
             )}
           </div>
