@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseClient";
 import { formatCurrencyBRL } from "@/lib/utils";
 import { useCart } from "@/hooks/useCart";
-import { ArrowLeft, Heart, ShoppingCart, Tag } from "lucide-react";
+import { ArrowLeft, Heart, ShoppingCart, Tag, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { RatingBadges } from "@/components/rating-badges";
