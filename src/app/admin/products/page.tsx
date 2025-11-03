@@ -13,7 +13,7 @@ interface ProductForm {
   stock: string;
   featured: boolean;
   images: string[];
-  variations: { size: string; stock: number | string }[];
+  variations: { size: string; color: string; imageUrl: string; stock: number | string }[];
   rating: string;
   likes: string;
 }
@@ -181,7 +181,7 @@ export default function AdminProductsPage() {
   function addVariation() {
     setForm({
       ...form,
-      variations: [...form.variations, { size: "", stock: "" as any }]
+      variations: [...form.variations, { size: "", color: "", imageUrl: "", stock: "" as any }]
     });
   }
 
@@ -192,7 +192,7 @@ export default function AdminProductsPage() {
     });
   }
 
-  function updateVariation(index: number, field: 'size' | 'stock', value: any) {
+  function updateVariation(index: number, field: 'size' | 'color' | 'imageUrl' | 'stock', value: any) {
     const newVariations = [...form.variations];
     if (field === 'stock') {
       // Mantém como string vazia se estiver vazio, senão converte para número
@@ -577,7 +577,7 @@ export default function AdminProductsPage() {
                     <p className="text-xs text-gray-600 truncate">
                       {form.variations.length === 0 
                         ? "Configure o estoque" 
-                        : `${form.variations.length} ${form.variations.length === 1 ? 'tamanho' : 'tamanhos'}`
+                        : `${form.variations.length} ${form.variations.length === 1 ? 'variação' : 'variações'}`
                       }
                     </p>
                   </div>
@@ -616,7 +616,7 @@ export default function AdminProductsPage() {
                     className="bg-white px-4 py-2 border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-lg transition-all flex items-center gap-2 font-medium shadow-sm"
                   >
                     <Plus className="h-4 w-4" />
-                    {form.variations.length === 0 ? 'Adicionar Variações de Tamanho' : 'Adicionar Mais um Tamanho'}
+                    {form.variations.length === 0 ? 'Adicionar Variações (Tamanho/Cor)' : 'Adicionar Mais uma Variação'}
                   </button>
                 </div>
               </div>
@@ -626,47 +626,158 @@ export default function AdminProductsPage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
                     <Info className="h-4 w-4 text-blue-600" />
-                    <span>O estoque total será calculado automaticamente pela soma de todos os tamanhos</span>
+                    <span>O estoque total será calculado automaticamente pela soma de todas as variações</span>
                   </div>
 
                   {form.variations.map((variation, idx) => (
                     <div key={idx} className="bg-gradient-to-r from-blue-50 to-white border-2 border-blue-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
-                      <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-4 sm:items-end">
-                        <div className="sm:col-span-5">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tamanho #{idx + 1}
-                          </label>
-                          <input
-                            className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base font-medium"
-                            placeholder="Ex: P, M, G"
-                            value={variation.size}
-                            onChange={(e) => updateVariation(idx, 'size', e.target.value)}
-                          />
+                      <div className="space-y-3">
+                        {/* Linha 1: Tamanho e Cor */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Tamanho #{idx + 1}
+                            </label>
+                            <input
+                              className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base font-medium"
+                              placeholder="Ex: P, M, G, GG"
+                              value={variation.size}
+                              onChange={(e) => updateVariation(idx, 'size', e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Cor
+                            </label>
+                            <input
+                              className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base font-medium"
+                              placeholder="Ex: Preto, Branco, Rosa"
+                              value={variation.color}
+                              onChange={(e) => updateVariation(idx, 'color', e.target.value)}
+                            />
+                          </div>
                         </div>
-                        <div className="sm:col-span-5">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Quantidade
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base font-medium"
-                            placeholder="Digite"
-                            value={variation.stock}
-                            onChange={(e) => updateVariation(idx, 'stock', e.target.value)}
-                          />
+
+                        {/* Linha 2: Seletor de Imagem para a Cor */}
+                        {variation.color && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              📸 Imagem da cor "{variation.color}"
+                            </label>
+                            
+                            {form.images.length > 0 ? (
+                              <>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                                  {form.images.map((img, imgIdx) => (
+                                    <button
+                                      key={imgIdx}
+                                      type="button"
+                                      onClick={() => updateVariation(idx, 'imageUrl', img)}
+                                      className={`
+                                        relative aspect-square rounded-lg overflow-hidden border-2 transition-all
+                                        ${variation.imageUrl === img 
+                                          ? 'border-purple-500 ring-2 ring-purple-300 scale-105 shadow-lg' 
+                                          : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
+                                        }
+                                      `}
+                                      title={`Selecionar imagem ${imgIdx + 1} para ${variation.color}`}
+                                    >
+                                      <img 
+                                        src={img} 
+                                        alt={`Opção ${imgIdx + 1}`}
+                                        className="w-full h-full object-cover"
+                                      />
+                                      {variation.imageUrl === img && (
+                                        <div className="absolute inset-0 bg-purple-500/20 flex items-center justify-center">
+                                          <CheckCircle2 className="h-6 w-6 text-purple-600 bg-white rounded-full shadow-md" />
+                                        </div>
+                                      )}
+                                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1">
+                                        <p className="text-xs text-white text-center font-medium">#{imgIdx + 1}</p>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                                {variation.imageUrl && (
+                                  <p className="text-xs text-purple-600 mt-2 flex items-center gap-1 font-medium">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    Imagem selecionada para {variation.color}
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <div className="flex items-start gap-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                                <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                                <p className="text-xs text-orange-900">
+                                  <strong>Adicione imagens primeiro!</strong> Vá até a seção "Imagens do Produto" acima e faça upload das fotos antes de associar cores.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Linha 3: Quantidade e Botão Remover */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:items-end">
+                          <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Quantidade em Estoque
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base font-medium"
+                              placeholder="Digite a quantidade"
+                              value={variation.stock}
+                              onChange={(e) => updateVariation(idx, 'stock', e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => removeVariation(idx)}
+                              className="w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-2 border-2 border-red-200 hover:border-red-300 font-medium"
+                              title="Remover variação"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span>Remover</span>
+                            </button>
+                          </div>
                         </div>
-                        <div className="sm:col-span-2">
-                          <button
-                            type="button"
-                            onClick={() => removeVariation(idx)}
-                            className="w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-2 border-2 border-red-200 hover:border-red-300 font-medium"
-                            title="Remover tamanho"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span>Remover</span>
-                          </button>
-                        </div>
+
+                        {/* Preview da variação */}
+                        {(variation.size || variation.color || variation.imageUrl) && (
+                          <div className="flex items-start gap-3 pt-2 border-t border-blue-200">
+                            <div className="flex-1">
+                              <span className="text-xs text-gray-600 block mb-2">Preview:</span>
+                              <div className="flex flex-wrap items-center gap-2">
+                                {variation.size && (
+                                  <span className="text-xs bg-white border border-blue-300 text-blue-700 px-2 py-1 rounded font-medium">
+                                    {variation.size}
+                                  </span>
+                                )}
+                                {variation.color && (
+                                  <span className="text-xs bg-white border border-purple-300 text-purple-700 px-2 py-1 rounded font-medium">
+                                    {variation.color}
+                                  </span>
+                                )}
+                                {variation.stock && Number(variation.stock) > 0 && (
+                                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-medium">
+                                    {variation.stock} un.
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {variation.imageUrl && (
+                              <div className="flex-shrink-0">
+                                <img 
+                                  src={variation.imageUrl} 
+                                  alt={`Preview ${variation.color}`}
+                                  className="w-16 h-16 object-cover rounded-lg border-2 border-purple-300"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -825,7 +936,7 @@ export default function AdminProductsPage() {
                       <div className="mt-2 flex flex-wrap gap-1">
                         {product.variations.slice(0, 3).map((v: any, i: number) => (
                           <span key={i} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">
-                            {v.size} ({v.stock})
+                            {v.size}{v.color && ` - ${v.color}`} ({v.stock})
                           </span>
                         ))}
                         {product.variations.length > 3 && (

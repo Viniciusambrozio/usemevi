@@ -21,6 +21,7 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true);
   const [related, setRelated] = useState<any[]>([]);
   const [selectedSize, setSelectedSize] = useState<string>("");
+  const [selectedColor, setSelectedColor] = useState<string>("");
   const [favorited, setFavorited] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
@@ -104,8 +105,22 @@ export default function ProductPage() {
   }
 
   const images = Array.isArray(product.images) ? product.images : [];
-  const variations = product.variations || {};
-  const sizes = variations.sizes || [];
+  const variations = Array.isArray(product.variations) ? product.variations : [];
+  const sizes = variations.sizes || []; // Compatibilidade com formato antigo
+  
+  // Extrair cores únicas das variações
+  const uniqueColors = [...new Set(variations.map((v: any) => v.color).filter(Boolean))];
+  
+  // Extrair tamanhos únicos das variações
+  const uniqueSizes = [...new Set(variations.map((v: any) => v.size).filter(Boolean))];
+  
+  // Obter imagem da cor selecionada
+  const selectedColorVariation = variations.find((v: any) => v.color === selectedColor);
+  const colorImage = selectedColorVariation?.imageUrl;
+  
+  // Determinar qual imagem mostrar (imagem da cor ou imagem atual do carrossel)
+  const displayImages = colorImage ? [colorImage] : images;
+  
   const stock = product.stock || 0;
   const isNew = product?.created_at && 
     (Date.now() - new Date(product.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
@@ -135,15 +150,28 @@ export default function ProductPage() {
       return;
     }
     if (navigator.vibrate) navigator.vibrate(50);
+    
+    const variantInfo = [];
+    if (selectedSize) variantInfo.push(selectedSize);
+    if (selectedColor) variantInfo.push(selectedColor);
+    const variantLabel = variantInfo.length > 0 ? ` - ${variantInfo.join(' - ')}` : '';
+    
     add({
-      id: `${product.id}-${selectedSize || "default"}`,
-      name: `${product.name}${selectedSize ? ` - ${selectedSize}` : ""}`,
+      id: `${product.id}-${selectedSize || "default"}-${selectedColor || "default"}`,
+      name: `${product.name}${variantLabel}`,
       price: product.price,
       quantity: 1,
     });
     
     // Mostra notificação bonita
     setShowToast(true);
+  }
+
+  function handleColorSelect(color: string) {
+    setSelectedColor(color);
+    // Quando seleciona uma cor, reseta o índice da imagem para mostrar a imagem da cor
+    setCurrentImageIndex(0);
+    if (navigator.vibrate) navigator.vibrate(30);
   }
 
   return (
@@ -194,20 +222,28 @@ export default function ProductPage() {
 
       {/* Imagem do Produto */}
       <div className="relative">
-        {images.length > 0 ? (
+        {displayImages.length > 0 ? (
           <div className="relative aspect-[4/5] bg-gray-50">
             <Image 
-              src={images[currentImageIndex]} 
+              src={displayImages[currentImageIndex] || displayImages[0]} 
               alt={product.name} 
               fill
               className="object-cover" 
               priority
             />
 
+            {/* Badge de cor selecionada */}
+            {selectedColor && colorImage && (
+              <div className="absolute top-4 left-4 bg-purple-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-white rounded-full"></div>
+                {selectedColor}
+              </div>
+            )}
+
             {/* Indicadores de imagem */}
-            {images.length > 1 && (
+            {displayImages.length > 1 && !colorImage && (
               <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
-                {images.map((_: any, idx: number) => (
+                {displayImages.map((_: any, idx: number) => (
                   <button
                     key={idx}
                     onClick={() => setCurrentImageIndex(idx)}
@@ -253,12 +289,49 @@ export default function ProductPage() {
           />
         </div>
 
+        {/* Cores Disponíveis */}
+        {uniqueColors.length > 0 && (
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 mb-3">Cores Disponíveis</h3>
+            <div className="flex gap-2 flex-wrap">
+              {uniqueColors.map((color: string) => {
+                const colorVariation = variations.find((v: any) => v.color === color);
+                const hasImage = !!colorVariation?.imageUrl;
+                
+                return (
+                  <button
+                    key={color}
+                    onClick={() => handleColorSelect(color)}
+                    className={`
+                      px-5 py-2.5 rounded-xl border-2 font-medium transition-all relative
+                      ${selectedColor === color 
+                        ? "bg-purple-500 text-white border-purple-500 shadow-lg scale-105" 
+                        : "bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:shadow-md"
+                      }
+                    `}
+                  >
+                    <span>{color}</span>
+                    {hasImage && (
+                      <span className="ml-1.5">📸</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedColor && (
+              <p className="text-xs text-purple-600 mt-2 font-medium">
+                Cor selecionada: {selectedColor}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Tamanhos Disponíveis */}
-        {sizes.length > 0 && (
+        {(uniqueSizes.length > 0 || sizes.length > 0) && (
           <div>
             <h3 className="text-base font-semibold text-gray-900 mb-3">Tamanhos Disponíveis</h3>
             <div className="flex gap-2 flex-wrap">
-              {sizes.map((size: any) => {
+              {(uniqueSizes.length > 0 ? uniqueSizes : sizes).map((size: any) => {
                 const sizeLabel = typeof size === 'string' ? size : size.size;
                 const sizeStock = typeof size === 'object' && size.stock ? size.stock : null;
                 
@@ -268,8 +341,8 @@ export default function ProductPage() {
                     onClick={() => setSelectedSize(sizeLabel)}
                     className={`px-5 py-2.5 rounded-xl border-2 font-medium transition-all ${
                       selectedSize === sizeLabel 
-                        ? "bg-primary text-white border-primary" 
-                        : "bg-white border-gray-300 text-gray-700 hover:border-primary"
+                        ? "bg-primary text-white border-primary shadow-lg scale-105" 
+                        : "bg-white border-gray-300 text-gray-700 hover:border-primary hover:shadow-md"
                     }`}
                   >
                     <span>{sizeLabel}</span>
@@ -280,6 +353,11 @@ export default function ProductPage() {
                 );
               })}
             </div>
+            {selectedSize && (
+              <p className="text-xs text-gray-600 mt-2 font-medium">
+                Tamanho selecionado: {selectedSize}
+              </p>
+            )}
           </div>
         )}
 
