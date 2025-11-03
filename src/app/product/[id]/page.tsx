@@ -335,7 +335,10 @@ export default function ProductPage() {
 
             {/* Badge de cor selecionada */}
             {selectedColor && (
-              <div className="absolute top-4 left-4 bg-purple-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 animate-in zoom-in duration-200">
+              <div 
+                className="absolute top-4 left-4 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 animate-in zoom-in duration-200"
+                style={{ backgroundColor: '#FC0055' }}
+              >
                 <div className="w-3 h-3 bg-white rounded-full"></div>
                 {selectedColor}
               </div>
@@ -413,7 +416,7 @@ export default function ProductPage() {
           <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded space-y-1">
             <div>Debug: {uniqueColors.length} cores, {uniqueSizes.length} tamanhos, {variations.length} variações total</div>
             {selectedColor && (
-              <div className="text-purple-600">
+              <div style={{ color: '#FC0055' }}>
                 Cor selecionada: {selectedColor} - {availableSizes.length} tamanhos disponíveis
               </div>
             )}
@@ -454,10 +457,14 @@ export default function ProductPage() {
                       ${!colorHasStock
                         ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-50"
                         : selectedColor === color 
-                          ? "bg-purple-500 text-white border-purple-500 shadow-lg scale-105" 
-                          : "bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:shadow-md"
+                          ? "text-white shadow-lg scale-105" 
+                          : "bg-white border-gray-300 text-gray-700 hover:shadow-md"
                       }
                     `}
+                    style={selectedColor === color ? { 
+                      backgroundColor: '#FC0055', 
+                      borderColor: '#FC0055' 
+                    } : {}}
                   >
                     <span>{color}</span>
                     {hasImage && (
@@ -476,7 +483,7 @@ export default function ProductPage() {
               })}
             </div>
             {selectedColor && (
-              <p className="text-xs text-purple-600 mt-2 font-medium">
+              <p className="text-xs mt-2 font-medium" style={{ color: '#FC0055' }}>
                 Cor selecionada: {selectedColor}
               </p>
             )}
@@ -489,7 +496,7 @@ export default function ProductPage() {
             <h3 className="text-base font-semibold text-gray-900 mb-3">
               Tamanhos Disponíveis
               {selectedColor && (
-                <span className="text-sm font-normal text-purple-600 ml-2">
+                <span className="text-sm font-normal ml-2" style={{ color: '#FC0055' }}>
                   (para {selectedColor})
                 </span>
               )}
