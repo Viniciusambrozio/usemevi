@@ -116,10 +116,10 @@ export default function ProductPage() {
   console.log('Variações processadas:', variations);
   
   // Extrair cores únicas das variações
-  const uniqueColors = [...new Set(variations.map((v: any) => v.color).filter(Boolean))];
+  const uniqueColors: string[] = [...new Set(variations.map((v: any) => v.color).filter(Boolean))] as string[];
   
   // Extrair tamanhos únicos das variações
-  const uniqueSizes = [...new Set(variations.map((v: any) => v.size).filter(Boolean))];
+  const uniqueSizes: string[] = [...new Set(variations.map((v: any) => v.size).filter(Boolean))] as string[];
   
   console.log('Cores únicas:', uniqueColors);
   console.log('Tamanhos únicos:', uniqueSizes);
