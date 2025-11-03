@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabaseClient";
 import { formatCurrencyBRL } from "@/lib/utils";
-import { Plus, Search, Edit, Trash2, Package, Image as ImageIcon, Star, ThumbsUp, Info, AlertCircle, CheckCircle2, Sparkles, X } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Image as ImageIcon, Star, ThumbsUp, Info, AlertCircle, CheckCircle2, Sparkles, X, Wand2, Grid3x3 } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
 
 interface ProductForm {
@@ -31,6 +31,9 @@ export default function AdminProductsPage() {
     productId: "",
     productName: ""
   });
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkColors, setBulkColors] = useState("");
+  const [bulkSizes, setBulkSizes] = useState("");
   
   const [form, setForm] = useState<ProductForm>({
     name: "",
@@ -190,6 +193,37 @@ export default function AdminProductsPage() {
       ...form,
       variations: form.variations.filter((_, i) => i !== index)
     });
+  }
+
+  function generateVariations() {
+    const colors = bulkColors.split(',').map(c => c.trim()).filter(Boolean);
+    const sizes = bulkSizes.split(',').map(s => s.trim()).filter(Boolean);
+    
+    if (colors.length === 0 || sizes.length === 0) {
+      alert("Por favor, preencha cores e tamanhos!");
+      return;
+    }
+
+    const newVariations: any[] = [];
+    colors.forEach(color => {
+      sizes.forEach(size => {
+        newVariations.push({
+          size,
+          color,
+          imageUrl: "",
+          stock: ""
+        });
+      });
+    });
+
+    setForm({
+      ...form,
+      variations: newVariations
+    });
+    
+    setBulkMode(false);
+    setBulkColors("");
+    setBulkSizes("");
   }
 
   function updateVariation(index: number, field: 'size' | 'color' | 'imageUrl' | 'stock', value: any) {
@@ -604,29 +638,174 @@ export default function AdminProductsPage() {
                 </div>
               )}
 
-              {/* Botão Adicionar Variações */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
+              {/* Botões de Adicionar Variações */}
+              {form.variations.length === 0 && (
+                <div className="space-y-3">
+                  {/* Modo Geração Automática */}
+                  {!bulkMode ? (
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-200"></div>
+                      </div>
+                      <div className="relative flex justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setBulkMode(true)}
+                          className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 font-bold shadow-md hover:shadow-lg"
+                        >
+                          <Wand2 className="h-4 w-4" />
+                          Gerar Combinações Automáticas
+                        </button>
+                        <button
+                          type="button"
+                          onClick={addVariation}
+                          className="bg-white px-4 py-2.5 border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-lg transition-all flex items-center gap-2 font-medium shadow-sm"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Adicionar Manualmente
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl p-4 sm:p-5 space-y-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="bg-purple-500 p-2 rounded-lg">
+                          <Wand2 className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">Geração Automática</h4>
+                          <p className="text-xs text-gray-600">Todas as combinações serão criadas automaticamente</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Cores (separadas por vírgula)
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full border-2 border-purple-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-base"
+                            placeholder="Ex: Preto, Branco, Rosa, Azul"
+                            value={bulkColors}
+                            onChange={(e) => setBulkColors(e.target.value)}
+                          />
+                          {bulkColors && (
+                            <p className="text-xs text-purple-600 mt-1">
+                              {bulkColors.split(',').map(c => c.trim()).filter(Boolean).length} cores
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Tamanhos (separados por vírgula)
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full border-2 border-blue-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base"
+                            placeholder="Ex: P, M, G, GG"
+                            value={bulkSizes}
+                            onChange={(e) => setBulkSizes(e.target.value)}
+                          />
+                          {bulkSizes && (
+                            <p className="text-xs text-blue-600 mt-1">
+                              {bulkSizes.split(',').map(s => s.trim()).filter(Boolean).length} tamanhos
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Preview do que será gerado */}
+                      {bulkColors && bulkSizes && (
+                        <div className="bg-white border-2 border-green-300 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Grid3x3 className="h-4 w-4 text-green-600" />
+                            <span className="text-sm font-semibold text-green-900">
+                              Serão criadas {bulkColors.split(',').filter(Boolean).length * bulkSizes.split(',').filter(Boolean).length} variações:
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {bulkColors.split(',').map(c => c.trim()).filter(Boolean).slice(0, 3).map(color => (
+                              bulkSizes.split(',').map(s => s.trim()).filter(Boolean).slice(0, 3).map(size => (
+                                <span key={`${color}-${size}`} className="text-xs bg-gradient-to-r from-purple-100 to-blue-100 text-gray-700 px-2 py-1 rounded">
+                                  {size} - {color}
+                                </span>
+                              ))
+                            ))}
+                            {(bulkColors.split(',').filter(Boolean).length * bulkSizes.split(',').filter(Boolean).length) > 9 && (
+                              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                                +{(bulkColors.split(',').filter(Boolean).length * bulkSizes.split(',').filter(Boolean).length) - 9} mais
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBulkMode(false);
+                            setBulkColors("");
+                            setBulkSizes("");
+                          }}
+                          className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-white transition-all font-medium"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={generateVariations}
+                          disabled={!bulkColors || !bulkSizes}
+                          className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Wand2 className="h-4 w-4" />
+                          Gerar Variações
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="relative flex justify-center">
-                  <button
-                    type="button"
-                    onClick={addVariation}
-                    className="bg-white px-4 py-2 border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-lg transition-all flex items-center gap-2 font-medium shadow-sm"
-                  >
-                    <Plus className="h-4 w-4" />
-                    {form.variations.length === 0 ? 'Adicionar Variações (Tamanho/Cor)' : 'Adicionar Mais uma Variação'}
-                  </button>
+              )}
+
+              {/* Botão adicionar mais (quando já existem variações) */}
+              {form.variations.length > 0 && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                  <div className="relative flex justify-center">
+                    <button
+                      type="button"
+                      onClick={addVariation}
+                      className="bg-white px-4 py-2 border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-lg transition-all flex items-center gap-2 font-medium shadow-sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar Mais uma Variação
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Lista de Variações */}
               {form.variations.length > 0 && (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <Info className="h-4 w-4 text-blue-600" />
-                    <span>O estoque total será calculado automaticamente pela soma de todas as variações</span>
+                  <div className="flex items-center justify-between gap-2 text-sm bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Info className="h-4 w-4 text-blue-600" />
+                      <span>O estoque total será calculado automaticamente pela soma de todas as variações</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm({ ...form, variations: [] });
+                        setBulkMode(false);
+                      }}
+                      className="text-xs text-red-600 hover:text-red-700 font-medium whitespace-nowrap"
+                    >
+                      Limpar Todas
+                    </button>
                   </div>
 
                   {form.variations.map((variation, idx) => (
